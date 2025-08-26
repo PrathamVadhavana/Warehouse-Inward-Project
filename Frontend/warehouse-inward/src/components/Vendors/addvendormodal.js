@@ -34,7 +34,7 @@ const AddVendorModal = () => {
     return (
         <div
             className="modal fade"
-            id="myModal"
+            id="vendorModal"
             tabIndex="-1"
             aria-labelledby="VendorModalLabel"
             aria-hidden="true"

@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
+import {Link} from "react-router-dom";
 import EditVendorModal from "./editvendormodal";
 
-const ListVendors = ({ filters }) => {
+const ListVendors = ({ filters, search }) => {
     const [vendors, setVendors] = useState([]);
     const [editVendor, setEditVendor] = useState(null);
     const [showModal, setShowModal] = useState(false);
@@ -52,11 +53,25 @@ const ListVendors = ({ filters }) => {
     };
 
     // Apply filters
-    const filteredVendors = vendors.filter(vendor => {
-        // If no filter is selected, show all
-        if (!filters.status) return true;
-        // Compare status strings exactly (case-sensitive)
-        return vendor.status === filters.status;
+    const filteredVendors = vendors.filter((v) => {
+        const statusMatch = filters.status ? v.status === filters.status : true;
+
+        // search match
+        let searchMatch = true;
+        if (search?.text) {
+            const text = search.text.toLowerCase();
+
+            if (search.field === "vendor_name")
+                searchMatch = v.vendor_name?.toLowerCase().includes(text);
+
+            if (search.field === "vendor_code")
+                searchMatch = v.vendor_code?.toLowerCase().includes(text);
+
+            if (search.field === "contact_number")
+                searchMatch = v.contact_number?.toLowerCase().includes(text);
+        }
+
+        return statusMatch && searchMatch;
     });
 
     return (
@@ -89,8 +104,8 @@ const ListVendors = ({ filters }) => {
                                 {vendor.status}
                             </td>
                             <td className="align-middle text-center">
-                                <button className="btn btn-warning me-2" onClick={() => handleEdit(vendor)}>Edit</button>
-                                <button className="btn btn-danger" onClick={() => handleDelete(vendor)}>Delete</button>
+                                <Link onClick={() => handleEdit(vendor)} className="me-3"><i className="fa-regular fa-pen-to-square" style={{color: "#23dd3cff"}}></i></Link>
+                                <Link onClick={() => handleDelete(vendor)}><i class="fa-solid fa-trash" style={{color: "#e50606"}}></i></Link>
                             </td>
                         </tr>
                     ))}

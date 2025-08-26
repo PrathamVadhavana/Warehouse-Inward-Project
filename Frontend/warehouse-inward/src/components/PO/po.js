@@ -1,51 +1,54 @@
 import { Link } from 'react-router-dom';
-import AddVendorModal from './addvendormodal';
-import ListVendors from './listvendors';
+import AddPOModal from './addPOModal';
+import ListPOs from './listPOs';
 import Filter from '../common/Filter';
 import SearchBar from '../common/SearchBar';
 import { useState } from 'react';
 import { useDebounce } from '../common/useDebounce';
 
-const Vendor = () => {
+const PO = () => {
   const [filters, setFilters] = useState({});
-  const [search, setSearch] = useState({ text: "", field: "vendor_name" });
+  const [search, setSearch] = useState({ text: "", field: "po_id" });
 
-  const vendorFilters = [
-    { name: "status", label: "Status", options: ["Active", "Inactive"] }
+  // Example PO filters
+  const poFilters = [
+    { name: "status", label: "Status", options: ["Pending", "Partially Received", "Completed"] },
   ];
 
-  const searchFields = ["vendor_code", "vendor_name", "contact_number"];
+  const searchFields = ["po_id", "supplier_name"]; // fields you want to search
 
   // ✅ Only debounce the text, not the field
   const debouncedText = useDebounce(search.text, 500);
 
-  // Pass debounced text + field to ListVendors
+  // Pass debounced text + field to ListPOs
   const debouncedSearch = { ...search, text: debouncedText };
 
   return (
     <div className="container mt-3">
       <div className="d-flex justify-content-between align-items-center mb-2">
+        {/* Left side */}
         <div className="d-flex align-items-center">
-          <p className="h4 fw-bold mb-0 me-3">All Vendors</p>
+          <p className="h4 fw-bold mb-0 me-3">All Purchase Orders</p>
         </div>
 
+        {/* Right side */}
         <ul className="nav nav-pills align-items-center">
           <li className="nav-item">
-            <Link className="nav-link active mx-3" to="#" data-bs-toggle="modal" data-bs-target="#vendorModal">
-              Add Vendor
+            <Link className="nav-link active mx-3" to="#" data-bs-toggle="modal" data-bs-target="#addPOModal">
+              Add PO
             </Link>
           </li>
-          <AddVendorModal />
-          <Filter filters={vendorFilters} onFilterChange={setFilters} />
+          <AddPOModal />
+          <Filter filters={poFilters} onFilterChange={setFilters} />
           <SearchBar search={search} setSearch={setSearch} searchFields={searchFields} />
         </ul>
       </div>
 
       <hr className="mt-2 mb-4" />
 
-      <ListVendors filters={filters} search={debouncedSearch} />
+      <ListPOs filters={filters} search={debouncedSearch} />
     </div>
   );
 };
 
-export default Vendor;
+export default PO;

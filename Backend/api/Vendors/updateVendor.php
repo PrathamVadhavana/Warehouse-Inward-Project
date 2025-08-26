@@ -9,6 +9,7 @@ $contact_number = $data['contact_number'] ?? null;
 $gst_number = $data['gst_number'] ?? null;
 $address      = $data['address'] ?? null;
 $status      = $data['status'] ?? null;
+
 // Validate required fields
 if (!$vendor_code || !$contact_person || !$vendor_name  || !$contact_number || !$gst_number || !$address || !$status) {
     echo json_encode(["status" => "error", "message" => "Missing required fields"]);

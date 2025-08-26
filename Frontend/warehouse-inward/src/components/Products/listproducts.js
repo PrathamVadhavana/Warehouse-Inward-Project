@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import EditProductModal from "./editproductmodal";
+import { Link } from "react-router-dom";
 
-const ListProducts = ({ filters }) => {
+const ListProducts = ({ filters, search }) => {
     const [products, setProducts] = useState([]);
     const [editProduct, setEditProduct] = useState(null);
     const [showModal, setShowModal] = useState(false);
@@ -35,7 +36,7 @@ const ListProducts = ({ filters }) => {
             fetch("http://localhost/Backend/api/Products/deleteProduct.php", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ product_code: product.product_code }),
+                body: JSON.stringify({ product_id: product.product_id }),
             })
                 .then(res => res.json())
                 .then(data => {
@@ -52,10 +53,20 @@ const ListProducts = ({ filters }) => {
     };
 
     // Apply filters
-    const filteredProducts = products.filter(p => {
+    const filteredProducts = products.filter((p) => {
         const categoryMatch = filters.category ? p.category === filters.category : true;
         const statusMatch = filters.status ? p.status === filters.status : true;
-        return categoryMatch && statusMatch;
+
+        // search match
+        let searchMatch = true;
+        if (search?.text) {
+            const text = search.text.toLowerCase();
+            if (search.field === "name") searchMatch = p.product_name.toLowerCase().includes(text);
+            if (search.field === "code") searchMatch = p.product_code.toLowerCase().includes(text);
+            if (search.field === "hsn") searchMatch = p.hsn_code.toLowerCase().includes(text);
+        }
+
+        return categoryMatch && statusMatch && searchMatch;
     });
 
     return (
@@ -82,12 +93,12 @@ const ListProducts = ({ filters }) => {
                             <td className="align-middle text-center">{product.hsn_code}</td>
                             <td className="align-middle text-center">{product.category}</td>
                             <td className="align-middle text-center">{product.quantity}</td>
-                            <td className={`${product.status === "Not Available" ? "table-danger" : "table-success"} align-middle text-center`}>
+                            <td className={`${product.status === "Inactive" ? "table-danger" : "table-success"} align-middle text-center`}>
                                 {product.status}
                             </td>
                             <td className="align-middle text-center">
-                                <button className="btn btn-warning me-2" onClick={() => handleEdit(product)}>Edit</button>
-                                <button className="btn btn-danger" onClick={() => handleDelete(product)}>Delete</button>
+                                <Link onClick={() => handleEdit(product)} className="me-3"><i className="fa-regular fa-pen-to-square" style={{ color: "#23dd3cff" }}></i></Link>
+                                <Link onClick={() => handleDelete(product)}><i class="fa-solid fa-trash" style={{ color: "#e50606" }}></i></Link>
                             </td>
                         </tr>
                     ))}
