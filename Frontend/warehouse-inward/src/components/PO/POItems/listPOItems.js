@@ -20,7 +20,7 @@ const ListPOItems = ({ search }) => {
 
     // Search only by po_id and medicine_id
     const filteredpoItems = poItems.filter((p) => {
-        if (!search?.text) return true; 
+        if (!search?.text) return true;
         const text = search.text.toLowerCase();
 
         if (search.field === "PO Id") return String(p.po_id).toLowerCase().includes(text);
@@ -51,8 +51,8 @@ const ListPOItems = ({ search }) => {
                             <td className="align-middle text-center">{item.medicine_id}</td>
                             <td className="align-middle text-center">{item.quantity}</td>
                             <td className="align-middle text-center">{item.rate}</td>
-                            <td className="align-middle text-center">{item.created_at}</td>
-                            <td className="align-middle text-center">{item.updated_at}</td>
+                            <td className="align-middle text-center">{new Date(item.created_at).toLocaleDateString()}</td>
+                            <td className="align-middle text-center">{new Date(item.updated_at).toLocaleDateString()}</td>
                         </tr>
                     ))}
                 </tbody>

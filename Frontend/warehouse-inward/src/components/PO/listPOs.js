@@ -70,7 +70,7 @@ const ListPOs = ({ filters, search }) => {
 
   return (
     <div className="table-responsive" style={{ maxHeight: "550px", overflowY: "auto" }}>
-      <table className="table">
+      <table className="table" style={{ fontSize: "15px "}}>
         <thead style={{ position: "sticky", top: 0, backgroundColor: "#fff", zIndex: 1 }}>
           <tr className="table-dark">
             <th className="align-middle text-center">PO ID</th>
@@ -78,6 +78,8 @@ const ListPOs = ({ filters, search }) => {
             <th className="align-middle text-center">PO Date</th>
             <th className="align-middle text-center">Expected Date</th>
             <th className="align-middle text-center">Status</th>
+            <th className="align-middle text-center">Created At</th>
+            <th className="align-middle text-center">Updated At</th>
             <th className="align-middle text-center">Actions</th>
           </tr>
         </thead>
@@ -99,6 +101,8 @@ const ListPOs = ({ filters, search }) => {
               >
                 {po.status}
               </td>
+              <td className="align-middle text-center">{new Date(po.created_at).toLocaleDateString()}</td>
+              <td className="align-middle text-center">{new Date(po.updated_at).toLocaleDateString()}</td>
               <td className="align-middle text-center">
                 <Link onClick={() => handleEdit(po)} className="me-3">
                   <i className="fa-regular fa-pen-to-square" style={{ color: "#23dd3cff" }}></i>

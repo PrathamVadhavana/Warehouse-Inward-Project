@@ -9,9 +9,10 @@ $hsn_code      = $data['hsn_code'] ?? null;
 $product_name  = $data['product_name'] ?? null;
 $category      = $data['category'] ?? null;
 $quantity      = isset($data['quantity']) ? (int)$data['quantity'] : 0;
+$status        = $data['status'] ?? null;
 
 // Validate required fields
-if (!$product_code || !$hsn_code || !$product_name || !$category) {
+if (!$product_code || !$hsn_code || !$product_name || !$category || $quantity === null) {
     echo json_encode(["status" => "error", "message" => "Missing required fields"]);
     exit;
 }

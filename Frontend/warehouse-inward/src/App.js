@@ -4,8 +4,11 @@ import Product from './components/Products/product';
 import Vendor from './components/Vendors/vendor'; 
 import PO from './components/PO/po';
 import POItems from './components/PO/POItems/poItems';
-
+import GRN from './components/GRN/grn';
 import { Route, Routes } from 'react-router-dom';
+import GRNItems from './components/GRN/GRNItems/grnItems';
+import PI from './components/PI/pi';
+import PIItems from './components/PI/PIItems/piItems';
 
 function App() {
   return (
@@ -17,6 +20,10 @@ function App() {
         <Route path='/vendor' element={<Vendor/>}></Route>
         <Route path='/POs' element={<PO/>}></Route>
         <Route path='/POItems' element={<POItems/>}></Route>
+        <Route path='/GRNs' element={<GRN/>}></Route>
+        <Route path='/GRNItems' element={<GRNItems/>}></Route>
+        <Route path='/PIs' element={<PI/>}></Route>
+        <Route path='/PIItems' element={<PIItems/>}></Route>
       </Routes>
     </div>
   );

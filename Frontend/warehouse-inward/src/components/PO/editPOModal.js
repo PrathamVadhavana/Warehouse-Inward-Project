@@ -26,6 +26,7 @@ const EditPOModal = ({ po, onClose }) => {
 
         setSuppliers(suppliersRes.data || []);
         setProducts(productsRes.data || []);
+        console.log("Fetched suppliers:", suppliersRes.data);
       } catch (err) {
         console.error("Error fetching data:", err);
       }
@@ -47,7 +48,7 @@ const EditPOModal = ({ po, onClose }) => {
         let items = [];
         if (Array.isArray(res.data)) {
           items = res.data.map((item) => ({
-            medicine_id: item.medicine_id,
+            medicine_id: String(item.medicine_id), // force string
             quantity: Number(item.quantity),
             rate: Number(item.rate),
           }));
@@ -55,7 +56,7 @@ const EditPOModal = ({ po, onClose }) => {
 
         setFormData({
           po_id: po.po_id,
-          supplier_id: po.supplier_id || "",
+          supplier_id: String(po.supplier_id || ""),
           po_date: po.po_date || "",
           expected_date: po.expected_date || "",
           status: po.status || "Pending",
@@ -132,20 +133,30 @@ const EditPOModal = ({ po, onClose }) => {
                 <label htmlFor="supplier_id" className="col-form-label fw-bold">
                   Supplier:
                 </label>
-                <select
-                  className="form-select"
-                  id="supplier_id"
-                  value={formData.supplier_id}
-                  onChange={handleInputChange}
-                  required
-                >
-                  <option value="">-- Select Supplier --</option>
-                  {suppliers.map((s) => (
-                    <option key={s.vendor_id} value={s.vendor_id}>
-                      {s.vendor_name}
-                    </option>
-                  ))}
-                </select>
+                <Select
+                  options={suppliers.map((s) => ({
+                    value: String(s.vendor_id),
+                    label: s.vendor_name,
+                  }))}
+                  value={
+                    suppliers.find((s) => String(s.vendor_id) === String(formData.supplier_id))
+                      ? {
+                        value: String(formData.supplier_id),
+                        label:
+                          suppliers.find((s) => String(s.vendor_id) === String(formData.supplier_id))
+                            ?.vendor_name || "",
+                      }
+                      : null
+                  }
+                  onChange={(selected) =>
+                    setFormData({
+                      ...formData,
+                      supplier_id: selected ? selected.value : "",
+                    })
+                  }
+                  isClearable
+                />
+
               </div>
 
               <div className="row">
@@ -212,76 +223,85 @@ const EditPOModal = ({ po, onClose }) => {
                       </tr>
                     </thead>
                     <tbody>
-                      {formData.items.map((item, index) => (
-                        <tr key={index}>
-                          <td>
-                            <Select
-                              options={products.map((p) => ({
-                                value: p.product_id,
-                                label: p.product_name,
-                              }))}
-                              value={
-                                products.find((p) => p.product_id === item.medicine_id)
-                                  ? {
-                                    value: item.medicine_id,
-                                    label: products.find((p) => p.product_id === item.medicine_id).product_name,
-                                  }
-                                  : null
-                              }
-                              onChange={(selected) => handleItemSelect(index, selected)}
-                              placeholder="Select Medicine..."
-                              isClearable
-                              required
-                            />
+                      {formData.items.map((item, index) => {
+                        // Get medicines selected in other rows
+                        const selectedMedicines = formData.items
+                          .filter((_, i) => i !== index)
+                          .map((i) => i.medicine_id);
 
-                          </td>
-                          <td>
-                            <input
-                              type="number"
-                              className="form-control"
-                              name="quantity"
-                              placeholder="Quantity"
-                              value={item.quantity}
-                              onChange={(e) => handleItemChange(index, e)}
-                              min="1"
-                              required
-                            />
-                          </td>
-                          <td>
-                            <input
-                              type="number"
-                              className="form-control"
-                              name="rate"
-                              placeholder="Rate"
-                              value={item.rate}
-                              onChange={(e) => handleItemChange(index, e)}
-                              min="0"
-                              step="0.01"
-                              required
-                            />
-                          </td>
-                          <td className="align-middle">
-                            ${(item.quantity * item.rate).toFixed(2)}
-                          </td>
-                          <td className="align-middle">
-                            {formData.items.length > 1 && (
-                              <button
-                                type="button"
-                                className="btn btn-danger btn-sm"
-                                onClick={() => removeItemRow(index)}
-                              >
-                                Remove
-                              </button>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
+                        // Filter products to only show unselected ones
+                        const availableProducts = products
+                          .filter((p) => !selectedMedicines.includes(String(p.product_id)))
+                          .map((p) => ({ value: p.product_id, label: p.product_name }));
+
+                        return (
+                          <tr key={index}>
+                            <td>
+                              <Select
+                                options={availableProducts}
+                                value={availableProducts.find(p => p.value === item.medicine_id) || null}
+                                onChange={(selected) => handleItemSelect(index, selected)}
+                                isClearable
+                                required
+                              />
+                            </td>
+                            <td>
+                              <input
+                                type="number"
+                                className="form-control"
+                                name="quantity"
+                                placeholder="Quantity"
+                                value={item.quantity}
+                                onChange={(e) => handleItemChange(index, e)}
+                                min="1"
+                                required
+                              />
+                            </td>
+                            <td>
+                              <input
+                                type="number"
+                                className="form-control"
+                                name="rate"
+                                placeholder="Rate"
+                                value={item.rate}
+                                onChange={(e) => handleItemChange(index, e)}
+                                min="0"
+                                step="0.01"
+                                required
+                              />
+                            </td>
+                            <td className="align-middle">₹{(item.quantity * item.rate).toFixed(2)}</td>
+                            <td className="align-middle">
+                              {formData.items.length > 1 && (
+                                <button
+                                  type="button"
+                                  className="btn btn-danger btn-sm"
+                                  onClick={() => removeItemRow(index)}
+                                >
+                                  Remove
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
-                <button type="button" className="btn btn-secondary mt-2" onClick={addItemRow}>
+                <button
+                  type="button"
+                  className="btn btn-secondary mt-2"
+                  onClick={() => {
+                    if (formData.items.length >= products.length) {
+                      alert("All available medicines are already added.");
+                      return;
+                    }
+                    addItemRow();
+                  }}
+                >
                   <i className="bi bi-plus-circle me-2"></i>Add Item
                 </button>
+
               </div>
 
               <div className="modal-footer">

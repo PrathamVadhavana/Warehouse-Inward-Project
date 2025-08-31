@@ -76,17 +76,19 @@ const ListVendors = ({ filters, search }) => {
 
     return (
         <div className="table-responsive" style={{ maxHeight: "550px", overflowY: "auto" }}>
-            <table className="table">
+            <table className="table" style={{ fontSize: "15px "}}>
                 <thead style={{ position: "sticky", top: 0, backgroundColor: "#fff", zIndex: 1 }}>
                     <tr className="table-dark">
                         <th className="align-middle text-center">ID</th>
-                        <th className="align-middle text-center">Name</th>
                         <th className="align-middle text-center">Code</th>
+                        <th className="align-middle text-center">Name</th>
                         <th className="align-middle text-center">Contact Person</th>
                         <th className="align-middle text-center">Contact Number</th>
                         <th className="align-middle text-center">Address</th>
                         <th className="align-middle text-center">GST Number</th>
                         <th className="align-middle text-center">Status</th>
+                        <th className="align-middle text-center">Created At</th>
+                        <th className="align-middle text-center">Updated At</th>
                         <th className="align-middle text-center">Actions</th>
                     </tr>
                 </thead>
@@ -94,8 +96,8 @@ const ListVendors = ({ filters, search }) => {
                     {filteredVendors.map(vendor => (
                         <tr key={vendor.vendor_code}>
                             <td className="align-middle text-center">{vendor.vendor_id}</td>
-                            <td className="align-middle text-center">{vendor.vendor_name}</td>
                             <td className="align-middle text-center">{vendor.vendor_code}</td>
+                            <td className="align-middle text-center">{vendor.vendor_name}</td>
                             <td className="align-middle text-center">{vendor.contact_person}</td>
                             <td className="align-middle text-center">{vendor.contact_number}</td>
                             <td className="align-middle text-center">{vendor.address}</td>
@@ -103,6 +105,8 @@ const ListVendors = ({ filters, search }) => {
                             <td className={`${vendor.status === "Inactive" ? "table-danger" : "table-success"} align-middle text-center`}>
                                 {vendor.status}
                             </td>
+                            <td className="align-middle text-center">{new Date(vendor.created_at).toLocaleDateString()}</td>
+                            <td className="align-middle text-center">{new Date(vendor.updated_at).toLocaleDateString()}</td>
                             <td className="align-middle text-center">
                                 <Link onClick={() => handleEdit(vendor)} className="me-3"><i className="fa-regular fa-pen-to-square" style={{color: "#23dd3cff"}}></i></Link>
                                 <Link onClick={() => handleDelete(vendor)}><i class="fa-solid fa-trash" style={{color: "#e50606"}}></i></Link>

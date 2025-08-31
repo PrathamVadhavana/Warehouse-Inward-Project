@@ -1,0 +1,58 @@
+const ReusableTable = ({ columns, data }) => {
+  return (
+    <table className="table w-full">
+      <thead
+        style={{
+          position: "sticky",
+          top: 0,
+          backgroundColor: "#fff",
+          zIndex: 1,
+        }}
+      >
+        <tr className="table-dark">
+          {columns.map((col, index) => (
+            <th
+              key={index}
+              className="align-middle text-center"
+              style={col.style || {}}
+            >
+              {col.header}
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {data.length > 0 ? (
+          data.map((row, rowIndex) => (
+            <tr key={row.id || rowIndex}>
+              {columns.map((col, colIndex) => (
+                <td key={colIndex} className="align-middle text-center">
+                  {col.render
+                    ? col.render(row[col.field], row) // custom render
+                    : row[col.field]}
+                </td>
+              ))}
+            </tr>
+          ))
+        ) : (
+          <tr>
+            <td
+              colSpan={columns.length}
+              className="p-8"
+            >
+              <div className="flex flex-col items-center justify-center text-center">
+                <div className="text-6xl mb-3">🔍</div>
+                <h3 className="text-xl font-semibold">No matching records</h3>
+                <p className="text-sm text-gray-400 mt-2">
+                  Try changing your search term or clearing filters.
+                </p>
+              </div>
+            </td>
+          </tr>
+        )}
+      </tbody>
+    </table>
+  );
+};
+
+export default ReusableTable;

@@ -2,7 +2,7 @@ import { useState } from "react";
 import axios from "axios";
 
 const AddProductModal = () => {
-    const [formData, setFormData] = useState({ product_code: '', hsn_code: '', product_name: '', category: '', quantity: 0 });
+    const [formData, setFormData] = useState({ product_code: '', hsn_code: '', product_name: '', category: '', quantity: 0 , status: 'Active'});
 
     const handleInputChange = (e) => {
         const { id, value } = e.target;
@@ -110,6 +110,18 @@ const AddProductModal = () => {
                                     <option value="Liquid">Liquid</option>
                                     <option value="Tablet">Tablet</option>
                                     <option value="Capsule">Capsule</option>
+                                </select>
+                            </div>
+                            
+                            {/* Status Dropdown */}
+                            <div className="mb-3">
+                                <label htmlFor="status" className="col-form-label">
+                                    Status:
+                                </label>
+                                <select className="form-select" id="status" onChange={handleInputChange}>
+                                    <option value="">-- Select Status --</option>
+                                    <option value="Active">Active</option>
+                                    <option value="Inactive">Inactive</option>
                                 </select>
                             </div>
 

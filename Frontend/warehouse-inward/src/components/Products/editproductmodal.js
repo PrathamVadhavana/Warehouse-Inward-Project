@@ -18,6 +18,7 @@ const EditProductModal = ({ product, onClose }) => {
         product_name: product.product_name || "",
         category: product.category || "",
         quantity: product.quantity || 0,
+        status: product.status || "Active",
       });
     }
   }, [product]);
@@ -105,6 +106,21 @@ const EditProductModal = ({ product, onClose }) => {
                   <option value="Liquid">Liquid</option>
                   <option value="Tablet">Tablet</option>
                   <option value="Capsule">Capsule</option>
+                </select>
+              </div>
+
+              {/* Status */}
+              <div className="mb-3">
+                <label htmlFor="status" className="col-form-label">Status:</label>
+                <select
+                  className="form-select"
+                  id="status"
+                  value={formData.status}
+                  onChange={handleInputChange}
+                >
+                  <option value="">-- Select Status --</option>
+                  <option value="Active">Active</option>
+                  <option value="Inactive">Inactive</option>
                 </select>
               </div>
 

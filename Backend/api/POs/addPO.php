@@ -28,6 +28,26 @@ if ($check_supplier_stmt->num_rows === 0) {
     exit;
 }
 
+// Update supplier status to 'Active' if not already
+$update_supplier_sql = "UPDATE vendors SET status = 'Active' WHERE vendor_id = ? AND status != 'Active'";
+$update_supplier_stmt = $conn->prepare($update_supplier_sql);
+$update_supplier_stmt->bind_param("i", $supplier_id);
+$update_supplier_stmt->execute();
+$update_supplier_stmt->close();
+
+// Update product status to 'Active' for all medicines in the PO
+$medicine_ids = array_column($items, 'medicine_id');
+if (!empty($medicine_ids)) {
+    $placeholders = implode(',', array_fill(0, count($medicine_ids), '?'));
+    $types = str_repeat('i', count($medicine_ids));
+
+    $update_product_sql = "UPDATE products SET status = 'Active' WHERE product_id IN ($placeholders) AND status != 'Active'";
+    $update_product_stmt = $conn->prepare($update_product_sql);
+    $update_product_stmt->bind_param($types, ...$medicine_ids);
+    $update_product_stmt->execute();
+    $update_product_stmt->close();
+}
+
 // Insert new Purchase Order
 $insert_po_sql = "INSERT INTO purchase_orders (supplier_id, po_date, expected_date, status)
                   VALUES (?, ?, ?, ?)";

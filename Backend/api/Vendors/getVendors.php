@@ -1,7 +1,7 @@
 <?php
 require_once("../connect.php");
 
-$sql = "SELECT * FROM vendors";
+$sql = "SELECT * FROM vendors ORDER BY updated_at DESC";
 $result = $conn->query($sql);
 $vendors = array();
 if ($result->num_rows > 0) {

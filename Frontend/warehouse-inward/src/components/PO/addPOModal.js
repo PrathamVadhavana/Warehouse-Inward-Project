@@ -41,6 +41,10 @@ const AddPOModal = () => {
     };
 
     const addItemRow = () => {
+        if (formData.items.length >= products.length) {
+            alert("All available medicines are already added.");
+            return;
+        }
         setFormData({
             ...formData,
             items: [...formData.items, { medicine_id: "", quantity: 0, rate: 0 }],
@@ -130,48 +134,66 @@ const AddPOModal = () => {
                             {/* Items Table */}
                             <div className="mb-3">
                                 <label className="col-form-label">Items:</label>
-                                {formData.items.map((item, index) => (
-                                    <div className="row mb-2" key={index}>
-                                        <div className="col">
-                                            <Select
-                                                options={products.map(p => ({ value: p.product_id, label: p.product_name }))}
-                                                value={products
-                                                    .filter(p => p.product_id === item.medicine_id)
-                                                    .map(p => ({ value: p.product_id, label: p.product_name }))[0] || null}
-                                                onChange={(selected) => {
-                                                    const newItems = [...formData.items];
-                                                    newItems[index].medicine_id = selected ? selected.value : "";
-                                                    setFormData({ ...formData, items: newItems });
-                                                }}
-                                                placeholder="Select Medicine..."
-                                                isClearable
-                                            />
+                                {/* Header Row */}
+                                <div className="row fw-bold mb-2">
+                                    <div className="col">Medicine</div>
+                                    <div className="col">Quantity</div>
+                                    <div className="col">Rate(in ₹)</div>
+                                    <div className="col-auto"></div>
+                                </div>
+                                {formData.items.map((item, index) => {
+                                    // Medicines already selected in other rows
+                                    const selectedMedicines = formData.items
+                                        .filter((_, i) => i !== index)
+                                        .map((i) => i.medicine_id);
+
+                                    // Filter out already selected medicines
+                                    const availableProducts = products
+                                        .filter((p) => !selectedMedicines.includes(p.product_id))
+                                        .map(p => ({ value: p.product_id, label: p.product_name }));
+
+                                    return (
+                                        <div className="row mb-2" key={index}>
+                                            <div className="col">
+                                                <Select
+                                                    options={availableProducts}
+                                                    value={availableProducts.find(p => p.value === item.medicine_id) || null}
+                                                    onChange={(selected) => {
+                                                        const newItems = [...formData.items];
+                                                        newItems[index].medicine_id = selected ? selected.value : "";
+                                                        setFormData({ ...formData, items: newItems });
+                                                    }}
+                                                    placeholder="Select Medicine..."
+                                                    isClearable
+                                                />
+                                            </div>
+                                            <div className="col">
+                                                <input
+                                                    type="number"
+                                                    className="form-control"
+                                                    name="quantity"
+                                                    placeholder="Quantity"
+                                                    value={item.quantity}
+                                                    onChange={(e) => handleItemChange(index, e)}
+                                                />
+                                            </div>
+                                            <div className="col">
+                                                <input
+                                                    type="number"
+                                                    className="form-control"
+                                                    name="rate"
+                                                    placeholder="Rate"
+                                                    value={item.rate}
+                                                    onChange={(e) => handleItemChange(index, e)}
+                                                />
+                                            </div>
+                                            <div className="col-auto">
+                                                <button type="button" className="btn btn-danger" onClick={() => removeItemRow(index)}>Remove</button>
+                                            </div>
                                         </div>
-                                        <div className="col">
-                                            <input
-                                                type="number"
-                                                className="form-control"
-                                                name="quantity"
-                                                placeholder="Quantity"
-                                                value={item.quantity}
-                                                onChange={(e) => handleItemChange(index, e)}
-                                            />
-                                        </div>
-                                        <div className="col">
-                                            <input
-                                                type="number"
-                                                className="form-control"
-                                                name="rate"
-                                                placeholder="Rate"
-                                                value={item.rate}
-                                                onChange={(e) => handleItemChange(index, e)}
-                                            />
-                                        </div>
-                                        <div className="col-auto">
-                                            <button type="button" className="btn btn-danger" onClick={() => removeItemRow(index)}>Remove</button>
-                                        </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
+
                                 <button type="button" className="btn btn-secondary mt-2" onClick={addItemRow}>Add Item</button>
                             </div>
 
