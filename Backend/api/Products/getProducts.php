@@ -1,7 +1,7 @@
 <?php
 require_once("../connect.php");
 
-$sql = "SELECT * FROM products ORDER BY updated_at DESC";
+$sql = "SELECT * FROM products WHERE is_deleted = 0 ORDER BY updated_at DESC";
 $result = $conn->query($sql);
 $products = array();
 if ($result->num_rows > 0) {
