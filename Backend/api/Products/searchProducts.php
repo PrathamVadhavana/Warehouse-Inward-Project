@@ -1,10 +1,9 @@
 <?php
-header("Access-Control-Allow-Origin: *"); // Allow all origins 
+header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json; charset=UTF-8");
 header("Access-Control-Allow-Methods: POST, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Authorization");
 
-// Handle preflight (OPTIONS) request
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
     exit;
@@ -13,9 +12,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 require_once("../connect.php");
 
 try {
-    // Check request method
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        http_response_code(405); // Method not allowed
+        http_response_code(405);
         echo json_encode([
             "status" => "error",
             "message" => "Invalid request method. Use POST."
@@ -23,71 +21,94 @@ try {
         exit;
     }
 
-    // Get JSON input
     $data = json_decode(file_get_contents("php://input"), true);
 
-    if (!$data || !isset($data['search'])) {
-        http_response_code(400); // Bad request
-        echo json_encode([
-            "status" => "error",
-            "message" => "Missing 'search' parameter in request."
-        ]);
-        exit;
-    }
+    // ✅ Input
+    $search = isset($data['search']) ? trim($data['search']) : "";
+    $searchField = isset($data['search_field']) ? trim($data['search_field']) : "";
+    $category = isset($data['category']) ? trim($data['category']) : "";
+    $status = isset($data['status']) ? trim($data['status']) : "";
 
-    $search = trim($data['search']);
-    if ($search === "") {
+    // ✅ Pagination
+    $page = isset($data['page']) && is_numeric($data['page']) ? (int)$data['page'] : 1;
+    $limit = isset($data['limit']) && is_numeric($data['limit']) ? (int)$data['limit'] : 10;
+    $offset = ($page - 1) * $limit;
+
+    // ✅ Allow only specific fields (prevent SQL injection)
+    $allowedFields = ["product_name", "product_code", "hsn_code", "category", "status"];
+    if (!in_array($searchField, $allowedFields)) {
         http_response_code(400);
         echo json_encode([
             "status" => "error",
-            "message" => "Search term cannot be empty."
+            "message" => "Invalid search field"
         ]);
         exit;
     }
 
-    // Build query
+     // ✅ Main query
+    $where = "WHERE is_deleted = 0 AND $searchField LIKE ?";
+    $params = [];
+    $types = "s";
+    $like = "%" . $search . "%";
+    $params[] = $like;
+
+    if ($category !== "") {
+        $where .= " AND category = ?";
+        $params[] = $category;
+        $types .= "s";
+    }
+    if ($status !== "") {
+        $where .= " AND status = ?";
+        $params[] = $status;
+        $types .= "s";
+    }
+
     $sql = "SELECT product_id, product_name, product_code, hsn_code, category, quantity, status, created_at, updated_at
             FROM products
-            WHERE is_deleted = 0
-              AND (product_name LIKE ? OR product_code LIKE ? OR hsn_code LIKE ?)";
+            $where
+            ORDER BY updated_at DESC
+            LIMIT ? OFFSET ?";
+    $types .= "ii";
+    $params[] = $limit;
+    $params[] = $offset;
 
     $stmt = $conn->prepare($sql);
     if (!$stmt) {
         throw new Exception("Failed to prepare SQL: " . $conn->error);
     }
-
-    $like = "%" . $search . "%";
-    $stmt->bind_param("sss", $like, $like, $like);
-
-    if (!$stmt->execute()) {
-        throw new Exception("Query execution failed: " . $stmt->error);
-    }
-
+    $stmt->bind_param($types, ...$params);
+    $stmt->execute();
     $result = $stmt->get_result();
-    $products = [];
 
+    $products = [];
     while ($row = $result->fetch_assoc()) {
         $products[] = $row;
     }
 
-    if (empty($products)) {
-        http_response_code(404);
-        echo json_encode([
-            "status" => "error",
-            "message" => "No products found matching '$search'."
-        ]);
-        exit;
-    }
+    // ✅ Count query
+    $countSql = "SELECT COUNT(*) as total FROM products $where";
+    $countStmt = $conn->prepare($countSql);
+    $countTypes = substr($types, 0, -2); // remove "ii"
+    $countParams = array_slice($params, 0, count($params) - 2);
+    $countStmt->bind_param($countTypes, ...$countParams);
+    $countStmt->execute();
+    $countResult = $countStmt->get_result()->fetch_assoc();
+    $totalRecords = $countResult['total'];
+    $totalPages = ceil($totalRecords / $limit);
 
-    // Success response
-    http_response_code(200);
     echo json_encode([
         "status" => "success",
-        "message" => "Products found.",
-        "data" => $products
+        "data" => $products,
+        "pagination" => [
+            "totalRecords" => $totalRecords,
+            "totalPages" => $totalPages,
+            "currentPage" => $page,
+            "limit" => $limit
+        ]
     ]);
 
     $stmt->close();
+    $countStmt->close();
     $conn->close();
 
 } catch (Exception $e) {

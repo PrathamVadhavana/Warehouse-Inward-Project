@@ -22,11 +22,11 @@ try {
     $hsn_code      = $data['hsn_code'] ?? null;
     $product_name  = $data['product_name'] ?? null;
     $category      = $data['category'] ?? null;
-    $quantity      = isset($data['quantity']) ? (float)$data['quantity'] : null;
+    $quantity      = isset($data['quantity']) ? (int)$data['quantity'] : null;
     $status        = $data['status'] ?? "Active";
 
     // ✅ Validations
-    if (!$product_code || !$hsn_code || !$product_name || !$category || $quantity === null) {
+    if (!$product_code || !$hsn_code || !$product_name || !$category || $quantity === null || $status === null) {
         http_response_code(400);
         echo json_encode(["status" => "error", "message" => "Missing required fields"]);
         exit;
@@ -55,8 +55,6 @@ try {
         http_response_code(409); // Conflict
         echo json_encode(["status" => "error", "message" => "Product already exists"]);
     } else {
-        // Auto set status
-        $status = ($quantity > 0) ? "Available" : "Not Available";
 
         $insert_sql = "INSERT INTO products (product_code, hsn_code, product_name, category, quantity, status, is_deleted)
                        VALUES (?, ?, ?, ?, ?, ?, 0)";

@@ -1,83 +1,98 @@
-import { useState, useEffect } from "react";
-import EditProductModal from "./editproductmodal";
-import { Link } from "react-router-dom";
+import { useState, useEffect, useMemo } from "react";
 import axios from "axios";
-import ReusableTable from "../common/ReusableTable"; 
+import ReusableTable from "../common/ReusableTable";
+import Loading from "../common/loading";
+import { toast } from "react-toastify";
 
-const ListProducts = ({ filters, search }) => {
+const API_BASE = "http://localhost/Backend/api/Products";
+
+const fieldMap = {
+  name: "product_name",
+  code: "product_code",
+  hsn: "hsn_code",
+  category: "category",
+  status: "status",
+};
+
+const ListProducts = ({ filters, search, refreshFlag, onEdit }) => {
   const [products, setProducts] = useState([]);
-  const [editProduct, setEditProduct] = useState(null);
-  const [showModal, setShowModal] = useState(false);
+  const [page, setPage] = useState(1);
+  const [limit] = useState(14);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const category = filters?.category ?? "";
+  const status = filters?.status ?? "";
+  const searchText = (search?.text ?? "").trim();
+  const uiField = (search?.field ?? "").trim();
+  const apiField = fieldMap[uiField] || "product_name";
+  const hasSearch = searchText.length > 0;
+
+  // Reset page on filter/search change
+  useEffect(() => {
+    setPage(1);
+  }, [category, status, searchText, apiField, refreshFlag]);
 
   useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        if (!search?.text) {
-          const res = await fetch("http://localhost/Backend/api/Products/getproducts.php");
-          const data = await res.json();
-          setProducts(data);
-        } else {
-          const res = await axios.post(
-            "http://localhost/Backend/api/Products/searchProducts.php",
-            { search: search.text }
-          );
-          const data = res.data;
+    const controller = new AbortController();
+    const { signal } = controller;
 
-          if (data.status === "success") {
-            setProducts(data.data);
-          } else {
-            setProducts([]);
+    const fetchProducts = async () => {
+      setLoading(true);
+      setError("");
+
+      try {
+        let res;
+
+        // Backend handles both search + filter together
+        res = await axios.post(`${API_BASE}/searchProducts.php`, {
+          search: searchText,
+          search_field: apiField,
+          category,
+          status,
+          page,
+          limit,
+        }, { signal });
+
+        if (signal.aborted) return;
+
+        if (res?.data?.status === "success") {
+          const rows = Array.isArray(res.data.data) ? res.data.data : [];
+          setProducts(rows);
+
+          const totalRecords = res.data.total ?? res.data.pagination?.totalRecords ?? 0;
+          setTotal(Number(totalRecords) || 0);
+
+          if (rows.length === 0) {
+            setError(res.data?.message || "No products found.");
           }
+        } else {
+          const msg = res?.data?.message || "Request failed.";
+          setProducts([]);
+          setTotal(0);
+          setError(msg);
+          toast.info(msg);
         }
       } catch (err) {
-        console.error("Fetch/Search error:", err);
+        if (axios.isCancel(err)) return;
+
+        const backendMsg = err?.response?.data?.message || err?.message || "Failed to load products.";
         setProducts([]);
+        setTotal(0);
+        setError(backendMsg);
+        toast.error(backendMsg);
+      } finally {
+        if (!signal.aborted) setLoading(false);
       }
     };
 
     fetchProducts();
-  }, [search]);
+    return () => controller.abort();
+  }, [page, limit, category, status, searchText, apiField, hasSearch, refreshFlag]);
 
-  const handleEdit = (product) => {
-    setEditProduct(product);
-    setShowModal(true);
-  };
-
-  const handleCloseModal = () => {
-    setShowModal(false);
-    setEditProduct(null);
-  };
-
-  const handleDelete = async (product) => {
-    if (window.confirm(`Are you sure you want to delete "${product.product_name}"?`)) {
-      try {
-        const res = await axios.post(
-          "http://localhost/Backend/api/Products/deleteProduct.php",
-          { product_id: product.product_id }
-        );
-        const data = res.data;
-
-        if (data.status === "success") {
-          setProducts(products.filter((p) => p.product_code !== product.product_code));
-        } else {
-          console.error("Delete failed:", data.message);
-        }
-      } catch (err) {
-        console.error("Delete error:", err);
-      }
-    }
-  };
-
-  // ✅ filtering logic
-  const filteredProducts = products.filter((p) => {
-    const categoryMatch = filters.category ? p.category === filters.category : true;
-    const statusMatch = filters.status ? p.status === filters.status : true;
-    return categoryMatch && statusMatch;
-  });
-
-  // ✅ define columns for ReusableTable
-  const columns = [
-    { header: "ID", field: "product_id" },
+  const columns = useMemo(() => [
+    { header: "ID", field: "product_id"},
     { header: "Name", field: "product_name" },
     { header: "Code", field: "product_code" },
     { header: "HSN", field: "hsn_code" },
@@ -87,7 +102,17 @@ const ListProducts = ({ filters, search }) => {
       header: "Status",
       field: "status",
       render: (value) => (
-        <span className={value === "Inactive" ? "badge bg-danger" : "badge bg-success"}>
+        <span
+          style={{
+            padding: "2px 6px",
+            borderRadius: "4px",
+            fontSize: "0.9rem",
+            fontWeight: "500",
+            backgroundColor: value === "Inactive" ? "#f8d7da" : "#d4edda",
+            color: value === "Inactive" ? "#721c24" : "#155724",
+            border: `1px solid ${value === "Inactive" ? "#f5c6cb" : "#c3e6cb"}`,
+          }}
+        >
           {value}
         </span>
       ),
@@ -95,32 +120,79 @@ const ListProducts = ({ filters, search }) => {
     {
       header: "Created At",
       field: "created_at",
-      render: (value) => new Date(value).toLocaleDateString(),
+      render: (value) => (value ? new Date(value).toLocaleDateString() : "-"),
     },
     {
       header: "Updated At",
       field: "updated_at",
-      render: (value) => new Date(value).toLocaleDateString(),
+      render: (value) => (value ? new Date(value).toLocaleDateString() : "-"),
     },
     {
       header: "Actions",
       render: (_, row) => (
         <>
-          <Link onClick={() => handleEdit(row)} className="me-3">
-            <i className="fa-regular fa-pen-to-square" style={{ color: "#23dd3cff" }}></i>
-          </Link>
-          <Link onClick={() => handleDelete(row)}>
-            <i className="fa-solid fa-trash" style={{ color: "#e50606" }}></i>
-          </Link>
+          <button
+            className="btn btn-sm btn-link text-primary me-2"
+            onClick={() => onEdit(row)}
+          >
+              <i className="fa-regular fa-pen-to-square" style={{ color: '#23dd3c' }}></i>
+          </button>
+          <button
+            className="btn btn-sm btn-link text-danger"
+            onClick={() => handleDelete(row)}
+          >
+            <i className="fa-solid fa-trash"></i>
+          </button>
         </>
       ),
     },
-  ];
+  ], [onEdit]);
+
+  const handleDelete = async (product) => {
+    if (!product?.product_id) return;
+    if (!window.confirm(`Delete "${product.product_name}"?`)) return;
+
+    try {
+      const res = await axios.post(`${API_BASE}/deleteProduct.php`, {
+        product_id: product.product_id,
+      });
+
+      if (res?.data?.status === "success") {
+        setProducts((prev) => prev.filter((p) => p.product_id !== product.product_id));
+        setTotal((prev) => Math.max(prev - 1, 0));
+        // window.location.reload();
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
+        toast.success(`"${product.product_name}" deleted successfully.`);
+      } else {
+        toast.error(res?.data?.message || "Delete failed.");
+      }
+    } catch (err) {
+      const backendMsg = err?.response?.data?.message || err?.message || "Failed to delete product.";
+      toast.error(backendMsg);
+    }
+  };
 
   return (
-    <div className="table-responsive" style={{ maxHeight: "550px", overflowY: "auto" }}>
-      <ReusableTable columns={columns} data={filteredProducts} />
-      {showModal && <EditProductModal product={editProduct} onClose={handleCloseModal} />}
+    <div>
+      <div className="mb-2">
+        <strong>Total Records: {total}</strong>
+      </div>
+
+      {loading && <Loading />}
+      {error && !loading && <p className="text-danger">{error}</p>}
+
+      <div className="table-responsive">
+        <ReusableTable
+          columns={columns}
+          data={products}
+          totalRecords={total}
+          page={page}
+          limit={limit}
+          onPageChange={setPage}
+        />
+      </div>
     </div>
   );
 };

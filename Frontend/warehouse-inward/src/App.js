@@ -29,7 +29,7 @@ function App() {
       </Routes>
       <ToastContainer
         position="top-center"
-        autoClose={3000}
+        autoClose={1500}
         hideProgressBar={false}
         newestOnTop={true}
         closeOnClick
@@ -39,6 +39,7 @@ function App() {
         pauseOnHover
         theme="colored"
       />
+      {/* <CustomToast /> */}
     </div>
   );
 }
