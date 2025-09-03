@@ -26,7 +26,6 @@ try {
     // ✅ Input
     $search = isset($data['search']) ? trim($data['search']) : "";
     $searchField = isset($data['search_field']) ? trim($data['search_field']) : "";
-    $category = isset($data['category']) ? trim($data['category']) : "";
     $status = isset($data['status']) ? trim($data['status']) : "";
 
     // ✅ Pagination
@@ -35,7 +34,7 @@ try {
     $offset = ($page - 1) * $limit;
 
     // ✅ Allow only specific fields (prevent SQL injection)
-    $allowedFields = ["product_name", "product_code", "hsn_code", "category", "status"];
+    $allowedFields = ["vendor_name", "contact_person", "contact_number", "gst_number", "status"];
     if (!in_array($searchField, $allowedFields)) {
         http_response_code(400);
         echo json_encode([
@@ -45,26 +44,21 @@ try {
         exit;
     }
 
-     // ✅ Main query
+    // ✅ Main query
     $where = "WHERE deleted_at IS NULL AND $searchField LIKE ?";
     $params = [];
     $types = "s";
     $like = "%" . $search . "%";
     $params[] = $like;
 
-    if ($category !== "") {
-        $where .= " AND category = ?";
-        $params[] = $category;
-        $types .= "s";
-    }
     if ($status !== "") {
         $where .= " AND status = ?";
         $params[] = $status;
         $types .= "s";
     }
 
-    $sql = "SELECT product_id, product_name, product_code, hsn_code, category, quantity, status, created_at, updated_at
-            FROM products
+    $sql = "SELECT vendor_code, vendor_name, contact_person, contact_number, gst_number, address, status, created_at, updated_at
+            FROM vendors
             $where
             ORDER BY updated_at DESC
             LIMIT ? OFFSET ?";
@@ -80,13 +74,13 @@ try {
     $stmt->execute();
     $result = $stmt->get_result();
 
-    $products = [];
+    $vendors = [];
     while ($row = $result->fetch_assoc()) {
-        $products[] = $row;
+        $vendors[] = $row;
     }
 
     // ✅ Count query
-    $countSql = "SELECT COUNT(*) as total FROM products $where";
+    $countSql = "SELECT COUNT(*) as total FROM vendors $where";
     $countStmt = $conn->prepare($countSql);
     $countTypes = substr($types, 0, -2); // remove "ii"
     $countParams = array_slice($params, 0, count($params) - 2);
@@ -98,7 +92,7 @@ try {
 
     echo json_encode([
         "status" => "success",
-        "data" => $products,
+        "data" => $vendors,
         "pagination" => [
             "totalRecords" => $totalRecords,
             "totalPages" => $totalPages,

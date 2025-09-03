@@ -6,18 +6,18 @@ $response = ["status" => "error", "message" => "Unknown error occurred"];
 
 try {
     $data = json_decode(file_get_contents("php://input"), true);
-    $product_id  = $data['product_id'] ?? null;
+    $product_code  = $data['product_code'] ?? null;
 
-    if (!$product_id) {
+    if (!$product_code) {
         http_response_code(400);
-        echo json_encode(["status" => "error", "message" => "Missing product_id"]);
+        echo json_encode(["status" => "error", "message" => "Missing product_code"]);
         exit;
     }
 
     // Check if product exists
-    $check_sql = "SELECT product_id FROM products WHERE product_id = ? AND is_deleted = 0";
+    $check_sql = "SELECT product_code FROM products WHERE product_code = ? AND deleted_at IS NULL";
     $check_stmt = $conn->prepare($check_sql);
-    $check_stmt->bind_param("i", $product_id);
+    $check_stmt->bind_param("i", $product_code);
     $check_stmt->execute();
     $check_stmt->store_result();
 
@@ -26,9 +26,9 @@ try {
         echo json_encode(["status" => "error", "message" => "Product not found or already deleted"]);
     } else {
         // Soft delete → set is_deleted = 1
-        $delete_sql = "UPDATE products SET is_deleted = 1 WHERE product_id = ?";
+        $delete_sql = "UPDATE products SET deleted_at = NOW() WHERE product_code = ?";
         $delete_stmt = $conn->prepare($delete_sql);
-        $delete_stmt->bind_param("i", $product_id);
+        $delete_stmt->bind_param("i", $product_code);
 
         if ($delete_stmt->execute()) {
             http_response_code(200);

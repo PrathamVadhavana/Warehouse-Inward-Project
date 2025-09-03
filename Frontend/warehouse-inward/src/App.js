@@ -1,7 +1,7 @@
 import "./App.css";
 import Navbar from "./components/navbar";
 import Product from "./components/Products/product";
-import Vendor from "./components/Vendors/vendor";
+import Vendor from "./components/Vendors/product";
 import PO from "./components/PO/po";
 import POItems from "./components/PO/POItems/poItems";
 import GRN from "./components/GRN/grn";

@@ -5,40 +5,37 @@ import "react-toastify/dist/ReactToastify.css";
 
 const ProductModal = ({ product, onClose, onSuccess }) => {
   const isEdit = !!product;
-
-  const [formData, setFormData] = useState({
-    product_code: "",
+  const defaultFormData = {
     hsn_code: "",
     product_name: "",
     category: "",
     quantity: 0,
     status: "Active",
-  });
-
+  };
+  const [formData, setFormData] = useState(defaultFormData);
   const [errors, setErrors] = useState({});
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
 
   useEffect(() => {
     if (isEdit) {
       setFormData({
-        product_code: product.product_code || "",
         hsn_code: product.hsn_code || "",
         product_name: product.product_name || "",
         category: product.category || "",
         quantity: product.quantity || 0,
         status: product.status || "Active",
       });
+      // console.log(product);
     }
   }, [product, isEdit]);
 
   const validateField = (name, value) => {
     let error = "";
     switch (name) {
-      case "product_code":
-        if (!value) error = "Product code is required.";
-        break;
       case "hsn_code":
         if (!value) error = "HSN code is required.";
-        else if (!/^\d{6,8}$/.test(value)) error = "HSN code must be 6–8 digits.";
+        else if (!/^\d{6,8}$/.test(value))
+          error = "HSN code must be 6–8 digits.";
         break;
       case "product_name":
         if (!value) error = "Product name is required.";
@@ -86,24 +83,36 @@ const ProductModal = ({ product, onClose, onSuccess }) => {
       : "http://localhost/Backend/api/Products/addProduct.php";
 
     try {
-      const res = await axios.post(url, payload, { validateStatus: () => true });
+      const res = await axios.post(url, payload, {
+        validateStatus: () => true,
+      });
 
       if (res.status === 200 || res.data.status === "success") {
-          // console.log(res.data);
-          onSuccess?.(); // trigger parent refresh if needed
-          toast.success(
-            isEdit ? "Product updated successfully!" : "Product added successfully!"
-          );
-        onClose();
+        // console.log(res.data);
+        onSuccess?.(); // trigger parent refresh if needed
+        toast.success(
+          isEdit
+            ? "Product updated successfully!"
+            : "Product added successfully!"
+        );
+        handleClose();
       } else if (res.data.message === "Product already exists") {
         toast.error("Product already exists!");
       } else {
         toast.error(res.data?.message || "Unexpected error occurred!");
+        // console.error("Error response:", res.data?.details);
       }
     } catch (err) {
       console.error(err);
       toast.error("Server error, please try again later.");
     }
+  };
+
+  const handleClose = () => {
+    setFormData(defaultFormData);
+    setErrors({});
+    setShowCategoryDropdown(false);
+    onClose(); // call parent close
   };
 
   return (
@@ -115,23 +124,34 @@ const ProductModal = ({ product, onClose, onSuccess }) => {
               <h5 className="modal-title">
                 {isEdit ? "Edit Product" : "Add Product"}
               </h5>
-              <button type="button" className="btn-close" onClick={onClose}></button>
+              <button
+                type="button"
+                className="btn-close"
+                onClick={handleClose}
+              ></button>
             </div>
             <div className="modal-body">
               <form onSubmit={handleSubmit}>
-                {["product_code", "hsn_code", "product_name"].map((field) => (
+                {["hsn_code", "product_name"].map((field) => (
                   <div className="mb-3" key={field}>
                     <label htmlFor={field} className="col-form-label">
-                      {field.replace("_", " ").replace(/\b\w/g, (l) => l.toUpperCase())}:
+                      {field
+                        .replace("_", " ")
+                        .replace(/\b\w/g, (l) => l.toUpperCase())}
+                      :
                     </label>
                     <input
                       type="text"
-                      className={`form-control ${errors[field] ? "is-invalid" : ""}`}
+                      className={`form-control ${
+                        errors[field] ? "is-invalid" : ""
+                      }`}
                       id={field}
                       value={formData[field]}
                       onChange={handleInputChange}
                     />
-                    {errors[field] && <div className="invalid-feedback">{errors[field]}</div>}
+                    {errors[field] && (
+                      <div className="invalid-feedback">{errors[field]}</div>
+                    )}
                   </div>
                 ))}
 
@@ -140,17 +160,67 @@ const ProductModal = ({ product, onClose, onSuccess }) => {
                     Category:
                   </label>
                   <select
-                    className={`form-select ${errors.category ? "is-invalid" : ""}`}
+                    className={`form-select ${
+                      errors.category ? "is-invalid" : ""
+                    }`}
                     id="category"
-                    value={formData.category}
-                    onChange={handleInputChange}
+                    value={
+                      ["Liquid", "Tablet", "Capsule"].includes(
+                        formData.category
+                      )
+                        ? formData.category
+                        : "Other"
+                    }
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value === "Other") {
+                        setShowCategoryDropdown(true);
+                        // keep existing custom value if already present
+                        if (
+                          ["Liquid", "Tablet", "Capsule"].includes(
+                            formData.category
+                          )
+                        ) {
+                          setFormData({ ...formData, category: "" });
+                        }
+                      } else {
+                        setShowCategoryDropdown(false);
+                        setFormData({ ...formData, category: value });
+                      }
+                    }}
                   >
                     <option value="">-- Select Category --</option>
                     <option value="Liquid">Liquid</option>
                     <option value="Tablet">Tablet</option>
                     <option value="Capsule">Capsule</option>
+                    <option value="Other">Other (Mention it)</option>
                   </select>
-                  {errors.category && <div className="invalid-feedback">{errors.category}</div>}
+
+                  {showCategoryDropdown ||
+                  (!["Liquid", "Tablet", "Capsule"].includes(
+                    formData.category
+                  ) &&
+                    formData.category) ? (
+                    <div className="mt-2">
+                      <input
+                        type="text"
+                        className={`form-control ${
+                          errors.category ? "is-invalid" : ""
+                        }`}
+                        id="category-input"
+                        placeholder="Enter custom category"
+                        value={formData.category}
+                        onChange={(e) =>
+                          setFormData({ ...formData, category: e.target.value })
+                        }
+                      />
+                      {errors.category && (
+                        <div className="invalid-feedback">
+                          {errors.category}
+                        </div>
+                      )}
+                    </div>
+                  ) : null}
                 </div>
 
                 <div className="mb-3">
@@ -158,7 +228,9 @@ const ProductModal = ({ product, onClose, onSuccess }) => {
                     Status:
                   </label>
                   <select
-                    className={`form-select ${errors.status ? "is-invalid" : ""}`}
+                    className={`form-select ${
+                      errors.status ? "is-invalid" : ""
+                    }`}
                     id="status"
                     value={formData.status}
                     onChange={handleInputChange}
@@ -167,7 +239,9 @@ const ProductModal = ({ product, onClose, onSuccess }) => {
                     <option value="Active">Active</option>
                     <option value="Inactive">Inactive</option>
                   </select>
-                  {errors.status && <div className="invalid-feedback">{errors.status}</div>}
+                  {errors.status && (
+                    <div className="invalid-feedback">{errors.status}</div>
+                  )}
                 </div>
 
                 <div className="mb-3">
@@ -176,16 +250,24 @@ const ProductModal = ({ product, onClose, onSuccess }) => {
                   </label>
                   <input
                     type="number"
-                    className={`form-control ${errors.quantity ? "is-invalid" : ""}`}
+                    className={`form-control ${
+                      errors.quantity ? "is-invalid" : ""
+                    }`}
                     id="quantity"
                     value={formData.quantity}
                     onChange={handleInputChange}
                   />
-                  {errors.quantity && <div className="invalid-feedback">{errors.quantity}</div>}
+                  {errors.quantity && (
+                    <div className="invalid-feedback">{errors.quantity}</div>
+                  )}
                 </div>
 
                 <div className="modal-footer">
-                  <button type="button" className="btn btn-secondary" onClick={onClose}>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={handleClose}
+                  >
                     Close
                   </button>
                   <button type="submit" className="btn btn-primary">

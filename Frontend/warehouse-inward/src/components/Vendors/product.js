@@ -6,73 +6,48 @@ import Loading from "../common/loading";
 import Filter from "../common/Filter";
 import SearchBar from "../common/SearchBar";
 import { useDebounce } from "../common/useDebounce";
-import ProductModal from "./productmodal";
+import VendorModal from "./vendormodal";
 import { toast } from "react-toastify";
 
-const API_BASE = process.env.REACT_APP_API_BASE+"/Products";
+const API_BASE = process.env.REACT_APP_API_BASE+"/Vendors";
 
 // Map UI search fields → API column names
 const fieldMap = {
-  name: "product_name",
-  code: "product_code",
-  hsn: "hsn_code",
-  category: "category",
+  name: "vendor_name",
+  code: "vendor_code",
+  contact_person: "contact_person",
+  contact_number: "contact_number",
+  gst_number: "gst_number",
   status: "status",
 };
 
-const Product = () => {
+const Vendor = () => {
   const [filters, setFilters] = useState({});
   const [search, setSearch] = useState({ text: "", field: "name" });
   const [showModal, setShowModal] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState(null); // for edit
+  const [selectedVendor, setSelectedVendor] = useState(null); // for edit
   const [refreshFlag, setRefreshFlag] = useState(false); // trigger list refresh
-  const [categories, setCategories] = useState(["Liquid", "Tablet", "Capsule"]); // default
-  
-  const productFilters = [
-    {
-      name: "category",
-      label: "Category",
-      options: categories,
-    },
+
+  const vendorFilters = [
     { name: "status", label: "Status", options: ["Active", "Inactive"] },
   ];
 
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const res = await axios.get(`${API_BASE}/getCategories.php`);
-        if (res.data.status === "success") {
-          const backendCategories = res.data.data || [];
-          // Merge default with backend (avoid duplicates)
-          const merged = Array.from(
-            new Set([...categories, ...backendCategories])
-          );
-          setCategories(merged);
-        }
-      } catch (err) {
-        console.error("Failed to load categories", err);
-      }
-    };
-
-    fetchCategories();
-  }, []);
-
-  const searchFields = ["name", "code", "hsn"];
+  const searchFields = ["name", "code", "contact_person"];
   const debouncedText = useDebounce(search.text, 500);
   const debouncedSearch = { ...search, text: debouncedText };
 
   const handleAdd = () => {
-    setSelectedProduct(null); // ensure add mode
+    setSelectedVendor(null); // ensure add mode
     setShowModal(true);
   };
 
-  const handleEdit = (product) => {
-    setSelectedProduct(product);
+  const handleEdit = (vendor) => {
+    setSelectedVendor(vendor);
     setShowModal(true);
   };
 
-  const refreshProducts = () => {
-    setRefreshFlag((prev) => !prev); // toggle to trigger ListProducts refresh
+  const refreshVendors = () => {
+    setRefreshFlag((prev) => !prev); // toggle to trigger ListVendors refresh
   };
 
   return (
@@ -80,7 +55,7 @@ const Product = () => {
       <div className="d-flex justify-content-between align-items-center mb-2">
         {/* Left side */}
         <div className="d-flex align-items-center">
-          <p className="h4 fw-bold mb-0 me-3">All Products</p>
+          <p className="h4 fw-bold mb-0 me-3">All Vendors</p>
         </div>
 
         {/* Right side */}
@@ -89,7 +64,7 @@ const Product = () => {
             Add + 
           </Link>
 
-          <Filter filters={productFilters} onFilterChange={setFilters} />
+          <Filter filters={vendorFilters} onFilterChange={setFilters} />
           <SearchBar
             search={search}
             setSearch={setSearch}
@@ -100,46 +75,44 @@ const Product = () => {
 
       <hr className="mt-2 mb-4" />
 
-      {/* List of products */}
-      <ListProducts
+      {/* List of vendors */}
+      <ListVendors
         filters={filters}
         search={debouncedSearch}
         refreshFlag={refreshFlag}
         onEdit={handleEdit}
-        setCategories={setCategories}
       />
 
       {/* Add/Edit Modal */}
       {showModal && (
-        <ProductModal
-          product={selectedProduct}
+        <VendorModal
+          vendor={selectedVendor}
           onClose={() => setShowModal(false)}
-          onSuccess={refreshProducts}
+          onSuccess={refreshVendors}
         />
       )}
     </div>
   );
 };
 
-// ✅ ListProducts merged into same file
-const ListProducts = ({
+// ✅ ListVendors merged into same file
+const ListVendors = ({
   filters,
   search,
   refreshFlag,
   onEdit,
 }) => {
-  const [products, setProducts] = useState([]);
+  const [vendors, setVendors] = useState([]);
   const [page, setPage] = useState(1);
-  const [limit] = useState(14);
+  const [limit] = useState(12);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const category = filters?.category ?? "";
   const status = filters?.status ?? "";
   const searchText = (search?.text ?? "").trim();
   const uiField = (search?.field ?? "").trim();
-  const apiField = fieldMap[uiField] || "product_name";
+  const apiField = fieldMap[uiField] || "vendor_name";
   const hasSearch = searchText.length > 0;
   const [showLoader, setShowLoader] = useState(false);
 
@@ -157,23 +130,22 @@ const ListProducts = ({
   // Reset page on filter/search change
   useEffect(() => {
     setPage(1);
-  }, [category, status, searchText, apiField, refreshFlag]);
+  }, [status, searchText, apiField, refreshFlag]);
 
   useEffect(() => {
     const controller = new AbortController();
     const { signal } = controller;
 
-    const fetchProducts = async () => {
+    const fetchVendors = async () => {
       setLoading(true);
       setError("");
 
       try {
         const res = await axios.post(
-          `${API_BASE}/searchProducts.php`,
+          `${API_BASE}/searchVendors.php`,
           {
             search: searchText,
             search_field: apiField,
-            category,
             status,
             page,
             limit,
@@ -185,17 +157,17 @@ const ListProducts = ({
 
         if (res?.data?.status === "success") {
           const rows = Array.isArray(res.data.data) ? res.data.data : [];
-          setProducts(rows);
+          setVendors(rows);
 
           const totalRecords =
             res.data.total ?? res.data.pagination?.totalRecords ?? 0;
           setTotal(Number(totalRecords) || 0);
 
           if (rows.length === 0)
-            setError(res.data?.message || "No products found.");
+            setError(res.data?.message || "No vendors found.");
         } else {
           const msg = res?.data?.message || "Request failed.";
-          setProducts([]);
+          setVendors([]);
           setTotal(0);
           setError(msg);
           toast.info(msg);
@@ -206,8 +178,8 @@ const ListProducts = ({
         const backendMsg =
           err?.response?.data?.message ||
           err?.message ||
-          "Failed to load products.";
-        setProducts([]);
+          "Failed to load vendors.";
+        setVendors([]);
         setTotal(0);
         setError(backendMsg);
         toast.error(backendMsg);
@@ -216,12 +188,11 @@ const ListProducts = ({
       }
     };
 
-    fetchProducts();
+    fetchVendors();
     return () => controller.abort();
   }, [
     page,
     limit,
-    category,
     status,
     searchText,
     apiField,
@@ -229,22 +200,22 @@ const ListProducts = ({
     refreshFlag,
   ]);
 
-  const handleDelete = async (product) => {
-    if (!product?.product_code) return;
-    if (!window.confirm(`Delete "${product.product_name}"?`)) return;
+  const handleDelete = async (vendor) => {
+    if (!vendor?.vendor_code) return;
+    if (!window.confirm(`Delete "${vendor.vendor_name}"?`)) return;
 
     try {
-      const res = await axios.post(`${API_BASE}/deleteProduct.php`, {
-        product_code: product.product_code,
+      const res = await axios.post(`${API_BASE}/deleteVendor.php`, {
+        vendor_code: vendor.vendor_code,
       });
 
       if (res?.data?.status === "success") {
-        setProducts((prev) =>
-          prev.filter((p) => p.product_code !== product.product_code)
+        setVendors((prev) =>
+          prev.filter((p) => p.vendor_code !== vendor.vendor_code)
         );
         setTotal((prev) => Math.max(prev - 1, 0));
 
-        toast.success(`"${product.product_name}" deleted successfully.`);
+        toast.success(`"${vendor.vendor_name}" deleted successfully.`);
         setTimeout(() => window.location.reload(), 1500);
       } else {
         toast.error(res?.data?.message || "Delete failed.");
@@ -253,18 +224,19 @@ const ListProducts = ({
       const backendMsg =
         err?.response?.data?.message ||
         err?.message ||
-        "Failed to delete product.";
+        "Failed to delete vendor.";
       toast.error(backendMsg);
     }
   };
 
   const columns = useMemo(
     () => [
-      { header: "Code", field: "product_code" },
-      { header: "Name", field: "product_name" },
-      { header: "HSN", field: "hsn_code" },
-      { header: "Category", field: "category" },
-      { header: "Quantity", field: "quantity" },
+      { header: "Code", field: "vendor_code" },
+      { header: "Name", field: "vendor_name" },
+      { header: "Contact Person", field: "contact_person" },
+      { header: "Contact Number", field: "contact_number" },
+      { header: "GST Number", field: "gst_number" },
+      { header: "Address", field: "address" },
       {
         header: "Status",
         field: "status",
@@ -336,7 +308,7 @@ const ListProducts = ({
         <div className="table-responsive">
           <ReusableTable
             columns={columns}
-            data={products}
+            data={vendors}
             totalRecords={total}
             page={page}
             limit={limit}
@@ -348,4 +320,4 @@ const ListProducts = ({
   );
 };
 
-export default Product;
+export default Vendor;
